@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Доклад: Алгоритм Флойда — Уоршелла</title>
+    <style>
+        /* Палитра из вашей картинки */
+        :root {
+            --c-black: #121212;
+            --c-brown: #8B4E3D;
+            --c-orange: #EB6710;
+            --c-navy: #1C1932;
+            --c-steel: #4B658C;
+            --c-light: #5A8CE5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            color: var(--c-black);
+            display: flex;
+            line-height: 1.7;
+            font-weight: 600;
+            font-size: 1.15rem;
+        }
+
+        /* Боковая навигация */
+        nav {
+            width: 300px;
+            height: 100vh;
+            background-color: var(--c-navy);
+            color: white;
+            position: fixed;
+            padding: 40px 25px;
+            overflow-y: auto;
+            box-shadow: 5px 0 20px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        nav h2 {
+            font-size: 1.4rem;
+            margin-bottom: 25px;
+            color: var(--c-light);
+            border-bottom: 3px solid var(--c-orange);
+            padding-bottom: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        nav ul { list-style: none; }
+        nav ul li { margin-bottom: 12px; }
+
+        nav ul li a {
+            color: #d1d5db;
+            text-decoration: none;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+            display: block;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-weight: 700;
+            border-left: 4px solid transparent;
+        }
+
+        nav ul li a:hover {
+            background-color: var(--c-steel);
+            color: white;
+            border-left: 4px solid var(--c-orange);
+            transform: translateX(5px);
+        }
+
+        /* Основной контент */
+        main {
+            margin-left: 300px;
+            padding: 60px 80px;
+            max-width: 1100px;
+            width: calc(100% - 300px);
+        }
+
+        section {
+            margin-bottom: 60px;
+            background: white;
+            padding: 45px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(28, 25, 50, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Разные цвета для разных секций */
+        #intro { border-top: 8px solid var(--c-light); }
+        #idea { border-top: 8px solid var(--c-steel); }
+        #code { background-color: var(--c-navy); color: white; border-top: 8px solid var(--c-orange); }
+        #data { border-top: 8px solid var(--c-brown); }
+        #negative { background-color: #fff8f5; border-left: 10px solid var(--c-orange); }
+        #pros_cons { border-top: 8px solid var(--c-steel); }
+        #summary { border-top: 8px solid var(--c-black); }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--c-navy);
+            margin-bottom: 10px;
+            font-weight: 900;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            color: var(--c-brown);
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        h2 {
+            color: var(--c-navy);
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            font-weight: 900;
+        }
+
+        h2::before {
+            content: "";
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background-color: var(--c-orange);
+            border-radius: 4px;
+            margin-right: 15px;
+            transform: rotate(45deg);
+        }
+
+        #code h2 { color: white; }
+
+        p { margin-bottom: 20px; }
+        ul, ol { margin-left: 25px; margin-bottom: 20px; }
+        li { margin-bottom: 10px; }
+
+        b, strong { font-weight: 900; color: var(--c-navy); }
+        #code strong { color: var(--c-light); }
+
+        .highlight-orange { color: var(--c-orange); font-weight: 900; }
+
+        /* Блоки с кодом */
+        pre {
+            background-color: var(--c-black);
+            color: #e2e8f0;
+            padding: 30px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 25px 0;
+            border: 2px solid var(--c-steel);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .keyword { color: var(--c-light); font-weight: 900; }
+        .condition { color: var(--c-orange); font-weight: 900; }
+        .comment { color: var(--c-steel); font-style: italic; }
+
+        /* Визуализация (Схема графа) */
+        .graph-viz {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin: 30px 0;
+            padding: 30px;
+            background: var(--c-navy);
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .node {
+            width: 60px;
+            height: 60px;
+            background-color: var(--c-light);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 900;
+            box-shadow: 0 0 15px rgba(90, 140, 229, 0.5);
+        }
+
+        .arrow { color: var(--c-orange); font-size: 2rem; font-weight: 900; }
+
+        /* Карточки со сложностью */
+        .complexity-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .complexity-card {
+            background-color: var(--c-brown);
+            color: white;
+            padding: 25px 35px;
+            border-radius: 10px;
+            font-weight: 900;
+            font-size: 1.4rem;
+            flex: 1;
+            text-align: center;
+            box-shadow: 0 8px 15px rgba(139, 78, 61, 0.3);
+        }
+
+        .complexity-card:nth-child(2) {
+            background-color: var(--c-steel);
+            box-shadow: 0 8px 15px rgba(75, 101, 140, 0.3);
+        }
+
+        .warning-box {
+            background-color: var(--c-orange);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 25px 0;
+            font-weight: 700;
+            font-size: 1.15rem;
+            box-shadow: 0 10px 20px rgba(235, 103, 16, 0.3);
+        }
+
+        .warning-box strong {
+            color: var(--c-navy);
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* Сетка для плюсов и минусов */
+        .pros-cons-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .pros-box, .cons-box {
+            padding: 30px;
+            border-radius: 12px;
+        }
+
+        .pros-box {
+            background-color: #eef4fb;
+            border-top: 6px solid var(--c-steel);
+        }
+
+        .cons-box {
+            background-color: #fcf1ec;
+            border-top: 6px solid var(--c-brown);
+        }
+
+        .pros-box h3, .cons-box h3 {
+            font-size: 1.4rem;
+            font-weight: 900;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .pros-box h3 { color: var(--c-steel); }
+        .cons-box h3 { color: var(--c-brown); }
+
+        .pros-box ul, .cons-box ul {
+            list-style-type: none;
+            margin-left: 0;
+        }
+
+        .pros-box li, .cons-box li {
+            position: relative;
+            padding-left: 25px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .pros-box li::before {
+            content: "✔";
+            position: absolute;
+            left: 0;
+            color: var(--c-light);
+            font-weight: 900;
+        }
+
+        .cons-box li::before {
+            content: "✖";
+            position: absolute;
+            left: 0;
+            color: var(--c-orange);
+            font-weight: 900;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 1000px) {
+            body { flex-direction: column; }
+            nav { width: 100%; height: auto; position: relative; padding: 20px; }
+            nav ul { display: flex; flex-wrap: wrap; gap: 10px; }
+            nav ul li { margin-bottom: 0; }
+            nav ul li a { padding: 8px 12px; font-size: 0.95rem; }
+            main { margin-left: 0; width: 100%; padding: 20px; }
+            section { padding: 30px 20px; }
+            .complexity-container, .pros-cons-grid { grid-template-columns: 1fr; flex-direction: column; }
+            h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Навигация -->
+    <nav>
+        <h2>Содержание</h2>
+        <ul>
+            <li><a href="#intro">1. Что это и зачем?</a></li>
+            <li><a href="#idea">2. Основная идея</a></li>
+            <li><a href="#code">3. Как это в коде</a></li>
+            <li><a href="#data">4. Структуры данных</a></li>
+            <li><a href="#negative">5. Отрицательные циклы</a></li>
+            <li><a href="#pros_cons">6. Плюсы и минусы</a></li>
+            <li><a href="#summary">7. Сложность и итог</a></li>
+        </ul>
+    </nav>
+
+    <!-- Контент -->
+    <main>
+        <header>
+            <h1>Алгоритм Флойда — Уоршелла</h1>
+            <p class="subtitle">Краткий визуальный разбор алгоритма</p>
+        </header>
+
+        <section id="intro">
+            <h2>Что это и зачем?</h2>
+            <p>Алгоритм Флойда — Уоршелла — это классический алгоритм на графах, который решает задачу поиска кратчайших путей <strong>между всеми парами вершин</strong> одновременно (All-Pairs Shortest Path).</p>
+            <p>Его главная особенность в том, что он работает на основе <strong>динамического программирования</strong> и позволяет находить пути в графах, где есть ребра с <span class="highlight-orange">отрицательным весом</span> (в отличие от алгоритма Дейкстры).</p>
+        </section>
+
+        <section id="idea">
+            <h2>Основная идея</h2>
+            <p>Представьте, что мы хотим найти кратчайший путь из вершины <b>i</b> в вершину <b>j</b>. У нас есть два варианта:</p>
+            <ul>
+                <li>Пойти напрямую (если ребро существует).</li>
+                <li>Пойти через какую-то промежуточную вершину <b>k</b>.</li>
+            </ul>
+            
+            <div class="graph-viz">
+                <div class="node">i</div>
+                <div class="arrow">&rarr;</div>
+                <div class="node">k</div>
+                <div class="arrow">&rarr;</div>
+                <div class="node">j</div>
+            </div>
+
+            <p>Алгоритм последовательно перебирает <strong>все</strong> вершины графа в качестве таких "промежуточных" (<b>k</b>). На каждом шаге он проверяет: <i>«А не станет ли путь из i в j короче, если мы зайдем в k?»</i>. Если да, то мы обновляем расстояние.</p>
+        </section>
+
+        <section id="code">
+            <h2>Как это выглядит в коде</h2>
+            <p>Вся магия алгоритма держится на <strong>трех вложенных циклах</strong>. Внешний цикл <b>k</b> — это промежуточная вершина. Внутренние циклы <b>i</b> и <b>j</b> — это начальная и конечная вершины.</p>
+            
+            <pre><code><span class="comment"># Главное условие (релаксация):</span>
+<span class="keyword">if</span> dist[i][k] + dist[k][j] <span class="condition">&lt;</span> dist[i][j]:
+    dist[i][j] <span class="condition">=</span> dist[i][k] + dist[k][j]
+    next_vertex[i][j] <span class="condition">=</span> next_vertex[i][k]</code></pre>
+            
+            <p>Это означает: если путь от <b>i</b> до <b>k</b> плюс путь от <b>k</b> до <b>j</b> <span class="highlight-orange">меньше</span>, чем текущее известное расстояние от <b>i</b> до <b>j</b>, мы обновляем расстояние.</p>
+        </section>
+
+        <section id="data">
+            <h2>Структуры данных</h2>
+            <p>В Python мы используем две матрицы (обычно это двумерные списки или словари словарей):</p>
+            <ul>
+                <li><strong>Матрица расстояний (dist):</strong> Изначально заполняется весами ребер. Если ребра нет, пишем бесконечность (<code>float('inf')</code>). Диагональ (расстояние от вершины до самой себя) равна <code>0</code>.</li>
+                <li><strong>Матрица путей (next_vertex):</strong> Нужна, чтобы потом восстановить сам маршрут. В ней мы запоминаем, в какую следующую вершину нужно пойти, чтобы попасть из <b>i</b> в <b>j</b> по кратчайшему пути.</li>
+            </ul>
+        </section>
+
+        <section id="negative">
+            <h2>Отрицательные циклы</h2>
+            <p>Алгоритм умеет находить ошибки в графе.</p>
+            
+            <div class="warning-box">
+                Внимание: Если после завершения всех циклов на главной диагонали матрицы расстояний (<code>dist[i][i]</code>) появилось <strong>отрицательное число</strong>, это значит, что мы нашли путь из вершины в саму себя, который делает расстояние меньше нуля.
+            </div>
+
+            <p>Это и есть <strong>отрицательный цикл</strong>. В таком графе понятия кратчайшего пути не существует (можно бесконечно крутиться по кругу и уменьшать вес).</p>
+        </section>
+
+        <!-- НОВАЯ СЕКЦИЯ: ПЛЮСЫ И МИНУСЫ -->
+        <section id="pros_cons">
+            <h2>Плюсы и минусы</h2>
+            <p>Как и у любого алгоритма, у Флойда — Уоршелла есть свои сильные и слабые стороны, которые определяют, где его лучше применять.</p>
+            
+            <div class="pros-cons-grid">
+                <div class="pros-box">
+                    <h3>Плюсы (+)</h3>
+                    <ul>
+                        <li><strong>Находит пути для всех пар сразу:</strong> Не нужно запускать алгоритм для каждой отдельной вершины (как в Дейкстре).</li>
+                        <li><strong>Работает с отрицательными весами:</strong> В отличие от алгоритма Дейкстры, может обрабатывать ребра с отрицательным весом (если нет циклов).</li>
+                        <li><strong>Простота реализации:</strong> Всего три вложенных цикла и одно условие. Легко запомнить и написать на собеседовании.</li>
+                        <li><strong>Легко находит отрицательные циклы:</strong> Достаточно один раз посмотреть на главную диагональ матрицы.</li>
+                    </ul>
+                </div>
+                
+                <div class="cons-box">
+                    <h3>Минусы (-)</h3>
+                    <ul>
+                        <li><strong>Высокая сложность:</strong> Время работы \(O(n^3)\). Если в графе 1000 вершин, алгоритм сделает 1 миллиард операций. Долго.</li>
+                        <li><strong>Требует много памяти:</strong> Нужна матрица \(O(n^2)\). Для графа из 10 000 вершин это 100 миллионов ячеек памяти.</li>
+                        <li><strong>Неэффективен для разреженных графов:</strong> Если ребер в графе мало, матрица будет заполнена "бесконечностями", и память тратится зря (там лучше подойдет алгоритм Дейкстры).</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="summary">
+            <h2>Сложность и итог</h2>
+            <div class="complexity-container">
+                <div class="complexity-card">
+                    Время: O(n³)
+                </div>
+                <div class="complexity-card">
+                    Память: O(n²)
+                </div>
+            </div>
+            <p style="margin-top: 30px;">Где <b>n</b> — количество вершин (в теории графов часто обозначается как <b>V</b>). Алгоритм не очень быстрый для огромных графов, но <strong>очень простой в реализации</strong> и надежный для плотных графов (где много ребер).</p>
+        </section>
+    </main>
+
+    <script>
+        // Плавный скролл по клику на меню
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                window.scrollTo({
+                    top: targetElement.offsetTop - 30,
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
